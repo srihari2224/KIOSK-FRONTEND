@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>PixelPrint Kiosk</title>
+  <style>
+    * { box-sizing: border-box; font-family: Arial; }
+    body { margin: 0; height: 100vh; display: flex; }
+    .left, .right {
+      width: 50%; padding: 60px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .left { background: #1abc9c; color: white; text-align: center; }
+    input { padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; }
+    button { padding: 12px; background: #1abc9c; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    .error { color: red; margin-top: 10px; }
+    .success { color: green; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="left">
+  <h1>Welcome Back</h1>
+  <input id="loginUser" placeholder="Username" />
+  <input id="loginPass" type="password" placeholder="Password" />
+  <button onclick="login()">LOGIN</button>
+  <p id="loginMsg" class="error"></p>
+</div>
+
+<!-- REGISTER -->
+<div class="right">
+  <h1>Create Kiosk</h1>
+  <input id="r_user" placeholder="Kiosk Username" />
+  <input id="r_pass" type="password" placeholder="Password" />
+  <input id="r_location" placeholder="Location name" />
+  <input id="r_address" placeholder="Address" />
+  <button onclick="register()">REGISTER</button>
+  <p id="regMsg"></p>
+</div>
+
+<script>
+const API = "https://kiosk-backend-t1mi.onrender.com"
+const OWNER_EMAIL = "innvera.co@gmail.com"
+const DEVICE_ID = "electron-linux-kiosk"
+
+async function login() {
+  loginMsg.innerText = "Logging in..."
+  try {
+    const res = await fetch(API + "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: loginUser.value,
+        password: loginPass.value
+      })
+    })
+    const data = await res.json()
+
+    if (!res.ok) {
+      loginMsg.innerText = data.error || "Login failed"
+      return
+    }
+
+    localStorage.setItem("token", data.token)
+    localStorage.setItem("kioskId", data.kioskId)
+    location.href = "activate.html"
+  } catch (err) {
+    loginMsg.innerText = "Network error"
+  }
+}
+
+async function register() {
+  if (!r_user.value || !r_pass.value || !r_location.value) {
+    regMsg.innerText = "Fill all fields"
+    regMsg.className = "error"
+    return
+  }
+
+  regMsg.innerText = "Registering..."
+  regMsg.className = ""
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    try {
+      const res = await fetch(API + "/api/kiosk/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: r_user.value,
+          password: r_pass.value,
+          locationName: r_location.value,
+          address: r_address.value,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          ownerEmail: OWNER_EMAIL,
+          deviceId: DEVICE_ID
+        })
+      })
+
+      const data = await res.json()
+      regMsg.innerText = data.message
+      regMsg.className = res.ok ? "success" : "error"
+
+    } catch (err) {
+      regMsg.innerText = "Network error"
+      regMsg.className = "error"
+    }
+  })
+}
+</script>
+
+</body>
+</html>

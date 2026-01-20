@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OTP Verification</title>
+  <style>
+    body { font-family: Arial; background: #111; color: white; text-align: center; }
+    input { padding: 15px; font-size: 22px; width: 200px; text-align: center; }
+    button { padding: 12px 20px; margin-top: 15px; font-size: 18px; }
+    .box { margin-top: 50px; }
+    .job { margin-top: 30px; background: #222; padding: 20px; border-radius: 8px; }
+  </style>
+</head>
+
+<body>
+
+<h2>Enter OTP</h2>
+
+<div class="box">
+  <input id="otp" placeholder="6-digit OTP" />
+  <br/>
+  <button onclick="verifyOtp()">VERIFY</button>
+  <p id="msg"></p>
+</div>
+
+<div id="job" style="display:none" class="job">
+  <h3>Print Job</h3>
+  <p id="file"></p>
+  <p id="options"></p>
+  <button onclick="download()">Download File</button>
+</div>
+
+<script>
+const API = "https://printing-pixel-1.onrender.com"
+let jobData = null
+
+async function verifyOtp() {
+  msg.innerText = "Verifying..."
+
+  const res = await fetch(API + "/api/otp/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      otp: otp.value,
+      kioskId: localStorage.getItem("kioskId")
+    })
+  })
+
+  const data = await res.json()
+
+  if (!data.success) {
+    msg.innerText = data.error || "Invalid OTP"
+    return
+  }
+
+  jobData = data
+  document.getElementById("job").style.display = "block"
+  document.getElementById("file").innerText = "File: " + data.file
+  document.getElementById("options").innerText =
+    `Copies: ${data.printOptions.copies} | Duplex: ${data.printOptions.duplex} | Pages: ${data.printOptions.pageRange}`
+}
+
+async function download() {
+  const url = API + "/api/otp/download/" + jobData.uploadId
+  window.open(url)
+}
+</script>
+
+</body>
+</html>

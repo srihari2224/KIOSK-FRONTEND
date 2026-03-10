@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/main/main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "electron . --no-sandbox",
     "dev": "nodemon --watch main --exec electron ."
   },
   "keywords": [],

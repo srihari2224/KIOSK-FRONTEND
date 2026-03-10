@@ -171,30 +171,47 @@ async function printFile(filePath, printOptions) {
     })
 
   } else {
-    // Linux
+    // Linux - auto-detect printer via lpstat
     return new Promise((resolve, reject) => {
-      let printCommand = `lp -n ${printOptions.copies} "${filePath}"`
+      exec('lpstat -a 2>/dev/null | awk \'{print $1}\' | head -1', (err, stdout) => {
+        const printerName = stdout.trim()
 
-      if (printOptions.duplex === 'double') {
-        printCommand += ' -o sides=two-sided-long-edge'
-      }
-
-      if (printOptions.colorMode === 'bw') {
-        printCommand += ' -o ColorModel=Gray'
-      }
-
-      exec(printCommand, (error, stdout, stderr) => {
-        if (error) {
-          console.error(`❌ Print error: ${error.message}`)
-          reject(error)
+        if (!printerName) {
+          const msg = '⚠️ No printer found in CUPS. Please add a printer via System Settings > Printers.'
+          console.warn(msg)
+          // Don't crash the app - resolve with a warning
+          resolve(msg)
           return
         }
-        console.log(`✅ Print job submitted for: ${path.basename(filePath)}`)
-        resolve(stdout)
+
+        console.log(`🖨️ Using Linux printer: ${printerName}`)
+
+        let printCommand = `lp -d "${printerName}" -n ${printOptions.copies} "${filePath}"`
+
+        if (printOptions.duplex === 'double') {
+          printCommand += ' -o sides=two-sided-long-edge'
+        }
+
+        if (printOptions.colorMode === 'bw') {
+          printCommand += ' -o ColorModel=Gray'
+        }
+
+        exec(printCommand, (error, stdout, stderr) => {
+          if (error) {
+            console.error(`❌ Print error: ${error.message}`)
+            reject(error)
+            return
+          }
+          console.log(`✅ Print job submitted for: ${path.basename(filePath)}`)
+          resolve(stdout)
+        })
       })
     })
   }
 }
+
+
+
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

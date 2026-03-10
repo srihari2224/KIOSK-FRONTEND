@@ -1,69 +1,978 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>OTP Verification</title>
+  <meta charset="UTF-8" />
   <style>
-    body { font-family: Arial; background: #111; color: white; text-align: center; }
-    input { padding: 15px; font-size: 22px; width: 200px; text-align: center; }
-    button { padding: 12px 20px; margin-top: 15px; font-size: 18px; }
-    .box { margin-top: 50px; }
-    .job { margin-top: 30px; background: #222; padding: 20px; border-radius: 8px; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: #0c0c0e;
+      color: #fff;
+    }
+
+    /* ── LAYOUT ── */
+    .split {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* ── LEFT PANEL ── */
+    .left-panel {
+      width: 42%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 32px 36px;
+      background: #0c0c0e;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Top horizontal bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 40px;
+    }
+
+    .bar-line {
+      flex: 1;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.0), rgba(255, 255, 255, 0.4));
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    .bar-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: rgba(255, 255, 255, 0.25);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* OTP content area */
+    .otp-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .kiosk-tag {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2.5px;
+      color: rgba(255, 255, 255, 0.25);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .otp-title {
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1.1;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .otp-subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.35);
+      font-weight: 400;
+      margin-bottom: 36px;
+    }
+
+    /* OTP digit display */
+    .otp-digits {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .digit-box {
+      flex: 1;
+      height: 58px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1.5px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .digit-box.active {
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .digit-box.active::after {
+      content: '';
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 16px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 1px;
+      animation: blink 1s step-end infinite;
+    }
+
+    .digit-box.filled {
+      border-color: rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0;
+      }
+    }
+
+    /* Hidden input */
+    #otp {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Toast message */
+    #msg {
+      font-size: 13px;
+      font-weight: 500;
+      min-height: 20px;
+      margin-bottom: 24px;
+      color: #ff6b6b;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    #msg.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Number Pad */
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .num-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 22px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      padding: 16px 8px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      transition: background 0.12s, transform 0.1s, border-color 0.12s;
+    }
+
+    .num-btn .sub {
+      font-size: 8px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.2);
+      font-weight: 600;
+    }
+
+    .num-btn:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .num-btn:active {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(0.93);
+    }
+
+    .num-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .num-btn.ghost {
+      background: transparent;
+      border-color: transparent;
+      pointer-events: none;
+    }
+
+    .num-btn.del-btn {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Verify button */
+    #verifyBtn {
+      width: 100%;
+      padding: 16px;
+      margin-top: 12px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #0c0c0e;
+      border: none;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    #verifyBtn:hover {
+      background: #fff;
+    }
+
+    #verifyBtn:active {
+      transform: scale(0.98);
+    }
+
+    #verifyBtn:disabled {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.2);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      flex: 1;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      border-left: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Big gradient background art */
+    .art-bg {
+      position: absolute;
+      inset: 0;
+      background: #111014;
+    }
+
+    .art-bg::before {
+      content: '';
+      position: absolute;
+      top: -10%;
+      left: -15%;
+      width: 75%;
+      height: 80%;
+      background: radial-gradient(ellipse, rgba(200, 100, 60, 0.55) 0%, rgba(160, 60, 40, 0.3) 35%, transparent 65%);
+      filter: blur(60px);
+      animation: floatA 9s ease-in-out infinite alternate;
+    }
+
+    .art-bg::after {
+      content: '';
+      position: absolute;
+      bottom: -10%;
+      right: -10%;
+      width: 70%;
+      height: 70%;
+      background: radial-gradient(ellipse, rgba(80, 120, 200, 0.5) 0%, rgba(40, 80, 160, 0.25) 40%, transparent 65%);
+      filter: blur(70px);
+      animation: floatB 11s ease-in-out infinite alternate;
+    }
+
+    .art-orb {
+      position: absolute;
+      top: 30%;
+      left: 55%;
+      transform: translate(-50%, -50%);
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(ellipse, rgba(240, 160, 80, 0.35) 0%, rgba(200, 90, 50, 0.2) 40%, transparent 70%);
+      filter: blur(30px);
+      animation: floatOrb 7s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatA {
+      from {
+        transform: translate(0, 0) scale(1);
+      }
+
+      to {
+        transform: translate(6%, 8%) scale(1.08);
+      }
+    }
+
+    @keyframes floatB {
+      from {
+        transform: translate(0, 0) scale(1);
+      }
+
+      to {
+        transform: translate(-5%, -6%) scale(1.06);
+      }
+    }
+
+    @keyframes floatOrb {
+      from {
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      to {
+        transform: translate(-50%, -45%) scale(1.15);
+      }
+    }
+
+    /* Grid overlay */
+    .art-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* Card numbers */
+    .card-numbers {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 12px;
+      padding: 20px;
+    }
+
+    .art-card {
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s;
+    }
+
+    .art-card:hover {
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .art-card-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    .art-card-big {
+      font-size: 80px;
+      font-weight: 900;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.06);
+      align-self: flex-end;
+      letter-spacing: -4px;
+    }
+
+    .art-card-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.35);
+      line-height: 1.5;
+    }
+
+    /* Unique colour tints per card */
+    .art-card:nth-child(1) {
+      background: rgba(200, 80, 40, 0.07);
+      border-color: rgba(200, 80, 40, 0.12);
+    }
+
+    .art-card:nth-child(2) {
+      background: rgba(60, 100, 200, 0.07);
+      border-color: rgba(60, 100, 200, 0.12);
+    }
+
+    .art-card:nth-child(3) {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .art-card:nth-child(4) {
+      background: rgba(80, 60, 160, 0.07);
+      border-color: rgba(80, 60, 160, 0.12);
+    }
+
+    /* ── BOTTOM SHEET ── */
+    .bottom-sheet {
+      position: fixed;
+      bottom: -55%;
+      left: 0;
+      width: 100%;
+      height: 44vh;
+      background: rgba(10, 10, 14, 0.97);
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      border-top-left-radius: 28px;
+      border-top-right-radius: 28px;
+      box-shadow: 0 -12px 60px rgba(0, 0, 0, 0.6);
+      transition: bottom 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 32px;
+      backdrop-filter: blur(20px);
+    }
+
+    .bottom-sheet.active {
+      bottom: 0;
+    }
+
+    .sheet-handle {
+      width: 36px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.07);
+      border-top: 3px solid rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 18px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .status-icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .status-text {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .sub-status {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.4);
+      text-align: center;
+    }
+
+    .sheet-progress-container {
+      width: 70%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 2px;
+      margin-top: 22px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .sheet-progress-bar {
+      height: 100%;
+      background: rgba(255, 255, 255, 0.7);
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 2px;
+    }
+
+    /* ── SUCCESS OVERLAY ── */
+    .fullscreen-overlay {
+      position: fixed;
+      inset: 0;
+      background: #0c0c0e;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+
+    .fullscreen-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .success-ring {
+      width: 76px;
+      height: 76px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .success-ring svg {
+      width: 36px;
+      height: 36px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    @keyframes popIn {
+      from {
+        transform: scale(0);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .success-title {
+      font-size: 30px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .success-subtitle {
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .countdown {
+      margin-top: 32px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 18px;
+      border-radius: 20px;
+    }
   </style>
 </head>
 
 <body>
 
-<h2>Enter OTP</h2>
+  <div class="split">
+    <div class="right-panel">
+      <div class="art-bg"></div>
+      <div class="art-orb"></div>
+      <div class="art-grid"></div>
 
-<div class="box">
-  <input id="otp" placeholder="6-digit OTP" />
-  <br/>
-  <button onclick="verifyOtp()">VERIFY</button>
-  <p id="msg"></p>
-</div>
+      <div class="card-numbers">
+        <div class="art-card">
+          <span class="art-card-num">01/</span>
+          <div>
+            <div class="art-card-big">6</div>
+            <div class="art-card-label">Six digits.<br>One access.</div>
+          </div>
+        </div>
+        <div class="art-card">
+          <span class="art-card-num">02/</span>
+          <div>
+            <div class="art-card-big">∞</div>
+            <div class="art-card-label">Secure print<br>on demand.</div>
+          </div>
+        </div>
+        <div class="art-card">
+          <span class="art-card-num">03/</span>
+          <div>
+            <div class="art-card-big">0</div>
+            <div class="art-card-label">Zero wait.<br>Touch to start.</div>
+          </div>
+        </div>
+        <div class="art-card">
+          <span class="art-card-num">04/</span>
+          <div>
+            <div class="art-card-big">1</div>
+            <div class="art-card-label">One tap<br>to collect.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ── LEFT PANEL ── -->
+    <div class="left-panel">
 
-<div id="job" style="display:none" class="job">
-  <h3>Print Job</h3>
-  <p id="file"></p>
-  <p id="options"></p>
-  <button onclick="download()">Download File</button>
-</div>
+      <!-- Top progress bar -->
+      <div class="top-bar">
+        <div class="bar-line">
+          <div class="bar-fill" id="barFill"></div>
+        </div>
+        <span class="bar-label">OTP / <span id="barCount">0</span> of 6</span>
+      </div>
 
-<script>
-const API = "https://printing-pixel-1.onrender.com"
-let jobData = null
+      <div class="otp-content">
+        <div class="kiosk-tag">Kiosk — <span id="kioskLabel"></span></div>
+        <div class="otp-title">Enter your<br>access code</div>
+        <div class="otp-subtitle">Type the 6-digit OTP sent to the user</div>
 
-async function verifyOtp() {
-  msg.innerText = "Verifying..."
+        <!-- Digit display -->
+        <div class="otp-digits" id="otpDots">
+          <div class="digit-box active" id="d0"></div>
+          <div class="digit-box" id="d1"></div>
+          <div class="digit-box" id="d2"></div>
+          <div class="digit-box" id="d3"></div>
+          <div class="digit-box" id="d4"></div>
+          <div class="digit-box" id="d5"></div>
+        </div>
 
-  const res = await fetch(API + "/api/otp/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      otp: otp.value,
-      kioskId: localStorage.getItem("kioskId")
-    })
-  })
+        <input id="otp" maxlength="6" autocomplete="off" readonly />
 
-  const data = await res.json()
+        <!-- Toast message -->
+        <div id="msg"></div>
 
-  if (!data.success) {
-    msg.innerText = data.error || "Invalid OTP"
-    return
-  }
+        <!-- Number Pad -->
+        <div class="numpad">
+          <button class="num-btn" onclick="numPress('1')">1<span class="sub">&nbsp;</span></button>
+          <button class="num-btn" onclick="numPress('2')">2<span class="sub">ABC</span></button>
+          <button class="num-btn" onclick="numPress('3')">3<span class="sub">DEF</span></button>
+          <button class="num-btn" onclick="numPress('4')">4<span class="sub">GHI</span></button>
+          <button class="num-btn" onclick="numPress('5')">5<span class="sub">JKL</span></button>
+          <button class="num-btn" onclick="numPress('6')">6<span class="sub">MNO</span></button>
+          <button class="num-btn" onclick="numPress('7')">7<span class="sub">PQRS</span></button>
+          <button class="num-btn" onclick="numPress('8')">8<span class="sub">TUV</span></button>
+          <button class="num-btn" onclick="numPress('9')">9<span class="sub">WXYZ</span></button>
+          <button class="num-btn ghost"></button>
+          <button class="num-btn" onclick="numPress('0')">0<span class="sub">&nbsp;</span></button>
+          <button class="num-btn del-btn" onclick="numDelete()">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+              <line x1="18" y1="9" x2="12" y2="15" />
+              <line x1="12" y1="9" x2="18" y2="15" />
+            </svg>
+          </button>
+        </div>
 
-  jobData = data
-  document.getElementById("job").style.display = "block"
-  document.getElementById("file").innerText = "File: " + data.file
-  document.getElementById("options").innerText =
-    `Copies: ${data.printOptions.copies} | Duplex: ${data.printOptions.duplex} | Pages: ${data.printOptions.pageRange}`
-}
+        <button id="verifyBtn" onclick="verifyOtp()">Verify &amp; Print</button>
+      </div>
 
-async function download() {
-  const url = API + "/api/otp/download/" + jobData.uploadId
-  window.open(url)
-}
-</script>
+    </div>
+
+    <!-- ── RIGHT PANEL ── -->
+
+
+  </div>
+
+  <!-- Bottom Sheet -->
+  <div class="bottom-sheet" id="bottomSheet">
+    <div class="sheet-handle"></div>
+    <div id="loadingSpinner" class="spinner"></div>
+    <div id="printingIcon" class="status-icon">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 6 2 18 2 18 9" />
+        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+        <rect x="6" y="14" width="12" height="8" />
+      </svg>
+    </div>
+    <div class="status-text" id="sheetTitle">Verifying OTP...</div>
+    <div class="sub-status" id="sheetSubtitle">Please wait a moment</div>
+    <div class="sheet-progress-container" id="sheetProgress">
+      <div class="sheet-progress-bar" id="sheetProgressBar"></div>
+    </div>
+  </div>
+
+  <!-- Success Overlay -->
+  <div class="fullscreen-overlay" id="successOverlay">
+    <div class="success-ring">
+      <svg viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    </div>
+    <div class="success-title">Printing Complete</div>
+    <div class="success-subtitle">Please collect your documents</div>
+    <div class="countdown" id="countdownMsg">Closing in 10s</div>
+  </div>
+
+  <script>
+    // ── HARDCODED KIOSK CONFIG ─────────────────────────────────────────────
+    const KIOSK_USERNAME = "nyc"
+    localStorage.setItem("kioskUsername", KIOSK_USERNAME)
+    // ──────────────────────────────────────────────────────────────────────
+
+    const API = "https://printing-pixel-1.onrender.com"
+    let jobData = null
+    let countdownInterval = null
+    let msgTimer = null
+    let otpValue = ""
+
+    document.getElementById("kioskLabel").innerText = KIOSK_USERNAME
+
+    // ── Sound Engine ──
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+
+    function playClick(freq = 1000, duration = 0.045, gain = 0.16) {
+      const osc = audioCtx.createOscillator()
+      const vol = audioCtx.createGain()
+      osc.connect(vol); vol.connect(audioCtx.destination)
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime)
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.55, audioCtx.currentTime + duration)
+      vol.gain.setValueAtTime(gain, audioCtx.currentTime)
+      vol.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration)
+      osc.start(audioCtx.currentTime)
+      osc.stop(audioCtx.currentTime + duration)
+    }
+
+    // ── Toast Messages (disappearing) ──
+    function showMsg(text, isError = true) {
+      const el = document.getElementById("msg")
+      el.innerText = text
+      el.style.color = isError ? "#ff6b6b" : "rgba(255,255,255,0.6)"
+      el.classList.add("show")
+      if (msgTimer) clearTimeout(msgTimer)
+      msgTimer = setTimeout(() => { el.classList.remove("show") }, 2800)
+    }
+
+    // ── OTP Digit Display ──
+    function updateDisplay() {
+      for (let i = 0; i < 6; i++) {
+        const box = document.getElementById("d" + i)
+        if (i < otpValue.length) {
+          box.innerText = otpValue[i]
+          box.className = "digit-box filled"
+        } else {
+          box.innerText = ""
+          box.className = "digit-box" + (i === otpValue.length ? " active" : "")
+        }
+      }
+      // Update top bar
+      const pct = (otpValue.length / 6) * 100
+      document.getElementById("barFill").style.width = pct + "%"
+      document.getElementById("barCount").innerText = otpValue.length
+    }
+
+    function clearOtp() {
+      otpValue = ""
+      document.getElementById("otp").value = ""
+      updateDisplay()
+    }
+
+    // ── Number Pad ──
+    function numPress(digit) {
+      if (otpValue.length >= 6) return
+      playClick(1080, 0.04, 0.16)
+      otpValue += digit
+      document.getElementById("otp").value = otpValue
+      updateDisplay()
+    }
+
+    function numDelete() {
+      if (otpValue.length === 0) return
+      playClick(580, 0.055, 0.12)
+      otpValue = otpValue.slice(0, -1)
+      document.getElementById("otp").value = otpValue
+      updateDisplay()
+    }
+
+    // initialise display
+    updateDisplay()
+
+    // ── Input State ──
+    function setInputState(enabled) {
+      document.getElementById("verifyBtn").disabled = !enabled
+      document.querySelectorAll(".num-btn").forEach(b => {
+        if (!b.classList.contains("ghost")) b.disabled = !enabled
+      })
+    }
+
+    // ── Bottom Sheet ──
+    function showBottomSheet(title, subtitle, showSpinner = true, showProgress = false) {
+      document.getElementById("sheetTitle").innerText = title
+      document.getElementById("sheetSubtitle").innerText = subtitle
+      document.getElementById("loadingSpinner").style.display = showSpinner ? "block" : "none"
+      document.getElementById("printingIcon").style.display = "none"
+      document.getElementById("sheetProgress").style.display = showProgress ? "block" : "none"
+      document.getElementById("bottomSheet").classList.add("active")
+    }
+
+    function updateSheetStatus(title, subtitle) {
+      document.getElementById("sheetTitle").innerText = title
+      if (subtitle) document.getElementById("sheetSubtitle").innerText = subtitle
+    }
+
+    function updateProgress(pct) {
+      document.getElementById("sheetProgressBar").style.width = pct + "%"
+    }
+
+    function hideSheet() {
+      document.getElementById("bottomSheet").classList.remove("active")
+      setInputState(true)
+    }
+
+    // ── Success Overlay ──
+    function showSuccessOverlay() {
+      document.getElementById("bottomSheet").classList.remove("active")
+      document.getElementById("successOverlay").classList.add("active")
+      let seconds = 10
+      const countEl = document.getElementById("countdownMsg")
+      countEl.innerText = `Closing in ${seconds}s`
+      if (countdownInterval) clearInterval(countdownInterval)
+      countdownInterval = setInterval(() => {
+        seconds--
+        countEl.innerText = `Closing in ${seconds}s`
+        if (seconds <= 0) { clearInterval(countdownInterval); resetInterface() }
+      }, 1000)
+    }
+
+    function resetInterface() {
+      document.getElementById("successOverlay").classList.remove("active")
+      clearOtp()
+      setInputState(true)
+      updateProgress(0)
+    }
+
+    // ── Verify OTP ──
+    async function verifyOtp() {
+      if (otpValue.length !== 6) {
+        showMsg("Enter all 6 digits first")
+        clearOtp()
+        return
+      }
+
+      setInputState(false)
+      showBottomSheet("Verifying OTP...", "Checking credentials", true, false)
+
+      try {
+        const res = await fetch(API + "/api/otp/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            otp: otpValue,
+            kioskId: localStorage.getItem("kioskUsername") || localStorage.getItem("kioskId")
+          })
+        })
+
+        const data = await res.json()
+
+        if (!data.success) {
+          hideSheet()
+          clearOtp()
+          showMsg(data.error || "Invalid OTP — please try again")
+          return
+        }
+
+        updateSheetStatus("Verified!", "Preparing your files...")
+        jobData = data
+        clearOtp()
+
+        setTimeout(() => { startDownloadAndPrint(data.files) }, 1000)
+
+      } catch (error) {
+        hideSheet()
+        clearOtp()
+        showMsg("Network error: " + error.message)
+      }
+    }
+
+    // ── Print Progress ──
+    if (window.api && window.api.onPrintProgress) {
+      window.api.onPrintProgress((data) => {
+        const totalSteps = data.total * 2
+        let currentStep = (data.current - 1) * 2
+        if (data.status === 'printing') currentStep += 2
+        else currentStep += 1
+        const percent = (currentStep / totalSteps) * 100
+
+        if (data.status === 'printing') {
+          updateSheetStatus("Printing...", `File ${data.current} of ${data.total}: ${data.filename}`)
+          document.getElementById("loadingSpinner").style.display = "none"
+          document.getElementById("printingIcon").style.display = "block"
+        } else {
+          updateSheetStatus("Downloading...", `File ${data.current} of ${data.total}`)
+          document.getElementById("loadingSpinner").style.display = "block"
+          document.getElementById("printingIcon").style.display = "none"
+        }
+        updateProgress(percent)
+      })
+    }
+
+    async function startDownloadAndPrint(files) {
+      updateSheetStatus("Starting...", "Initializing print job")
+      document.getElementById("sheetProgress").style.display = "block"
+      updateProgress(0)
+
+      try {
+        const results = await window.api.downloadAndPrint(files)
+        updateProgress(100)
+        const errors = results.filter(r => !r.success)
+        if (errors.length > 0) console.warn("Some files failed:", errors)
+        setTimeout(() => { showSuccessOverlay() }, 1000)
+      } catch (error) {
+        hideSheet()
+        showMsg("System Error: " + error.message)
+      }
+    }
+  </script>
 
 </body>
+
 </html>

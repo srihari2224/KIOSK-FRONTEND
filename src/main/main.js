@@ -210,6 +210,9 @@ async function printFile(filePath, printOptions) {
   }
 }
 
+
+
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
